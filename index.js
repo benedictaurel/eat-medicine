@@ -8,8 +8,6 @@ import path from "path";
 import os from "os";
 
 const app = express();
-
-// Use system temp directory for Vercel serverless environment
 const upload = multer({ dest: path.join(os.tmpdir(), "uploads") });
 
 let net;
@@ -19,7 +17,7 @@ function euclideanDistance(a, b) {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
-// Initialize PoseNet model (lazy load on first request)
+// Initialize PoseNet model
 async function initModel() {
   if (!net) {
     console.log("Loading PoseNet model...");
@@ -37,17 +35,14 @@ async function initModel() {
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
-    message: "PoseNet API is running",
-    endpoints: {
-      pose: "POST /pose - Upload an image to detect pose"
-    }
+    message: "This is an API for PoseNet pose estimation that identifies the closest hand to the nose in an image to help patients that suffer from tuberculosis."
   });
 });
 
 // Main endpoint
 app.post("/pose", upload.single("image"), async (req, res) => {
   try {
-    // Initialize model if not loaded (lazy load for serverless)
+    // Initialize model if not loaded
     await initModel();
 
     if (!req.file) {
