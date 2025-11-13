@@ -4,32 +4,52 @@ import * as tf from "@tensorflow/tfjs";
 import * as posenet from "@tensorflow-models/posenet";
 import { createCanvas, loadImage } from "canvas";
 import fs from "fs";
+import path from "path";
+import os from "os";
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+
+// Use system temp directory for Vercel serverless environment
+const upload = multer({ dest: path.join(os.tmpdir(), "uploads") });
 
 let net;
-
-// Load PoseNet model when server starts
-(async () => {
-  console.log("Loading PoseNet model...");
-  net = await posenet.load({
-    architecture: "MobileNetV1",
-    outputStride: 16,
-    inputResolution: { width: 257, height: 200 },
-    multiplier: 0.75,
-  });
-  console.log("✅ PoseNet model loaded!");
-})();
 
 // Helper to calculate Euclidean distance
 function euclideanDistance(a, b) {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
+// Initialize PoseNet model (lazy load on first request)
+async function initModel() {
+  if (!net) {
+    console.log("Loading PoseNet model...");
+    net = await posenet.load({
+      architecture: "MobileNetV1",
+      outputStride: 16,
+      inputResolution: { width: 257, height: 200 },
+      multiplier: 0.75,
+    });
+    console.log("✅ PoseNet model loaded!");
+  }
+  return net;
+}
+
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    message: "PoseNet API is running",
+    endpoints: {
+      pose: "POST /pose - Upload an image to detect pose"
+    }
+  });
+});
+
 // Main endpoint
 app.post("/pose", upload.single("image"), async (req, res) => {
   try {
+    // Initialize model if not loaded (lazy load for serverless)
+    await initModel();
+
     if (!req.file) {
       return res.status(400).json({ error: "No image uploaded" });
     }
@@ -81,11 +101,15 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error("Pose estimation error:", error);
-    res.status(500).json({ error: "Pose estimation failed" });
+
+    // Clean up uploaded file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({ error: "Pose estimation failed", details: error.message });
   }
 });
 
-// Run the server
-app.listen(3000, () =>
-  console.log("🚀 PoseNet API running at http://localhost:3000")
-);
+// Export app for Vercel serverless environment
+export default app;
