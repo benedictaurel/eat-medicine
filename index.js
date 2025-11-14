@@ -76,7 +76,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Nose not detected", accepted: false });
     }
 
-    if (!kp.rightWrist || !kp.leftWrist) {
+    if (!kp.rightWrist && !kp.leftWrist) {
       return res.status(400).json({ error: "Wrist(s) not detected", accepted: false });
     }
 
