@@ -64,6 +64,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     // Get keypoints
     const kp = {};
     for (let point of pose.keypoints) {
+      if (pose.keypoints.score < 0.5) continue;
       if (["nose", "leftWrist", "rightWrist"].includes(point.part)) {
         kp[point.part] = point.position;
       }
