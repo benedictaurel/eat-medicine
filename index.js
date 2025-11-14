@@ -82,7 +82,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     const minDist = Math.min(distLeft, distRight);
     const closestHand = minDist === distLeft ? "leftWrist" : "rightWrist";
 
-    const THRESHOLD_DISTANCE = 550;
+    const THRESHOLD_DISTANCE = 1500;
     const confidenceDecimal = Math.max(0, 1 - minDist / THRESHOLD_DISTANCE);
     const ACCEPTANCE_THRESHOLD = 0.1;
 
