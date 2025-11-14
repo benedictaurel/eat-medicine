@@ -80,7 +80,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Wrist(s) not detected", accepted: false });
     }
 
-    const THRESHOLD_DISTANCE = 1150;
+    const THRESHOLD_DISTANCE = 1500;
     const confidenceDecimal = Math.max(0, 1 - dist(kp?.rightWrist || kp?.leftWrist, kp.nose) / THRESHOLD_DISTANCE);
     const ACCEPTANCE_THRESHOLD = 0.1; 
 
