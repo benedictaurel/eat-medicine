@@ -73,6 +73,8 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Nose not detected" });
     }
 
+    console.log("Koordinat Hidung: ", kp);
+
     const THRESHOLD_DISTANCE = 1150;
     const confidenceDecimal = Math.max(0, 1 - dist(kp.rightWrist, kp.nose) / THRESHOLD_DISTANCE);
     const ACCEPTANCE_THRESHOLD = 0.1; 
