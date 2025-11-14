@@ -82,13 +82,28 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     const minDist = Math.min(distLeft, distRight);
     const closestHand = minDist === distLeft ? "leftWrist" : "rightWrist";
 
-    const THRESHOLD_DISTANCE = 1500;
-    const confidenceDecimal = Math.max(0, 1 - minDist / THRESHOLD_DISTANCE);
-    const ACCEPTANCE_THRESHOLD = 0.1;
+    // If neither wrist is detected, return an explicit error to avoid Infinity
+    if (distLeft === Infinity && distRight === Infinity) {
+      return res.status(400).json({ error: "No wrists detected" });
+    }
+
+    // Compute both raw pixel distance and a normalized distance relative to the
+    // image diagonal so results are scale-independent (0..~1)
+    const imgDiagonal = Math.sqrt(image.width * image.width + image.height * image.height) || 1;
+    const distancePixels = minDist;
+    const distanceNormalized = distancePixels / imgDiagonal;
+
+    // Confidence expresses closeness (1 = same point, 0 = far apart)
+    const confidenceDecimal = Math.max(0, 1 - distanceNormalized);
+
+    // Acceptance threshold on normalized distance (e.g. require >= 0.15 closeness)
+    const ACCEPTANCE_THRESHOLD = 0.15;
 
     const result = {
       closestHand,
-      distance: parseFloat(minDist.toFixed(2)),
+      distancePixels: parseFloat(distancePixels.toFixed(2)),
+      distanceNormalized: parseFloat(distanceNormalized.toFixed(4)),
+      confidence: parseFloat(confidenceDecimal.toFixed(4)),
       accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
 
