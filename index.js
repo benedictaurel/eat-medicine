@@ -13,8 +13,10 @@ const upload = multer({ dest: path.join(os.tmpdir(), "uploads") });
 let net;
 
 // Helper to calculate Euclidean distance
-function euclideanDistance(a, b) {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+function dist(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 // Initialize PoseNet model
@@ -72,10 +74,10 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     }
 
     const distLeft = kp.leftWrist
-      ? euclideanDistance(kp.leftWrist, kp.nose)
+      ? dist(kp.leftWrist, kp.nose)
       : Infinity;
     const distRight = kp.rightWrist
-      ? euclideanDistance(kp.rightWrist, kp.nose)
+      ? dist(kp.rightWrist, kp.nose)
       : Infinity;
     const minDist = Math.min(distLeft, distRight);
     const closestHand = minDist === distLeft ? "leftWrist" : "rightWrist";
