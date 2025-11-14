@@ -78,7 +78,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     const ACCEPTANCE_THRESHOLD = 0.1; 
 
     const result = {
-      distance: parseFloat(minDist.toFixed(2)),
+      distance: parseFloat(dist(kp.rightWrist, kp.nose).toFixed(2)),
       accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
 
