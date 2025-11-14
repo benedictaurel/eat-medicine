@@ -73,6 +73,16 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Nose not detected" });
     }
 
+    // Scale keypoints back to original image coordinates
+    const scaleX = image.width / 257;
+    const scaleY = image.height / 200;
+    for (let key in kp) {
+      if (kp[key]) {
+        kp[key].x *= scaleX;
+        kp[key].y *= scaleY;
+      }
+    }
+
     const distLeft = kp.leftWrist
       ? dist(kp.leftWrist, kp.nose)
       : Infinity;
@@ -82,28 +92,17 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     const minDist = Math.min(distLeft, distRight);
     const closestHand = minDist === distLeft ? "leftWrist" : "rightWrist";
 
-    // If neither wrist is detected, return an explicit error to avoid Infinity
-    if (distLeft === Infinity && distRight === Infinity) {
-      return res.status(400).json({ error: "No wrists detected" });
-    }
+    // Normalize distance by image diagonal for scale invariance
+    const imageDiagonal = Math.hypot(image.width, image.height);
+    const normalizedMinDist = minDist / imageDiagonal;
 
-    // Compute both raw pixel distance and a normalized distance relative to the
-    // image diagonal so results are scale-independent (0..~1)
-    const imgDiagonal = Math.sqrt(image.width * image.width + image.height * image.height) || 1;
-    const distancePixels = minDist;
-    const distanceNormalized = distancePixels / imgDiagonal;
-
-    // Confidence expresses closeness (1 = same point, 0 = far apart)
-    const confidenceDecimal = Math.max(0, 1 - distanceNormalized);
-
-    // Acceptance threshold on normalized distance (e.g. require >= 0.15 closeness)
-    const ACCEPTANCE_THRESHOLD = 0.15;
+    const THRESHOLD_DISTANCE = 0.15;
+    const confidenceDecimal = Math.max(0, 1 - normalizedMinDist / THRESHOLD_DISTANCE);
+    const ACCEPTANCE_THRESHOLD = 0.1;
 
     const result = {
       closestHand,
-      distancePixels: parseFloat(distancePixels.toFixed(2)),
-      distanceNormalized: parseFloat(distanceNormalized.toFixed(4)),
-      confidence: parseFloat(confidenceDecimal.toFixed(4)),
+      distance: parseFloat(normalizedMinDist.toFixed(4)),
       accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
 
