@@ -78,7 +78,6 @@ app.post("/pose", upload.single("image"), async (req, res) => {
     const ACCEPTANCE_THRESHOLD = 0.1; 
 
     const result = {
-      closestHand,
       distance: parseFloat(minDist.toFixed(2)),
       accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
