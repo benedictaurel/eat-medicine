@@ -70,11 +70,15 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       }
     }
 
+    console.log("Koordinat: ", kp);
+
     if (!kp.nose) {
-      return res.status(400).json({ error: "Nose not detected" });
+      return res.status(400).json({ error: "Nose not detected", accepted: false });
     }
 
-    console.log("Koordinat: ", pose.keypoints);
+    if (!kp.rightWrist || !kp.leftWrist) {
+      return res.status(400).json({ error: "Wrist(s) not detected", accepted: false });
+    }
 
     const THRESHOLD_DISTANCE = 1150;
     const confidenceDecimal = Math.max(0, 1 - dist(kp.rightWrist, kp.nose) / THRESHOLD_DISTANCE);
