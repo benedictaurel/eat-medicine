@@ -73,36 +73,13 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Nose not detected" });
     }
 
-    // Scale keypoints back to original image coordinates
-    const scaleX = image.width / 257;
-    const scaleY = image.height / 200;
-    for (let key in kp) {
-      if (kp[key]) {
-        kp[key].x *= scaleX;
-        kp[key].y *= scaleY;
-      }
-    }
-
-    const distLeft = kp.leftWrist
-      ? dist(kp.leftWrist, kp.nose)
-      : Infinity;
-    const distRight = kp.rightWrist
-      ? dist(kp.rightWrist, kp.nose)
-      : Infinity;
-    const minDist = Math.min(distLeft, distRight);
-    const closestHand = minDist === distLeft ? "leftWrist" : "rightWrist";
-
-    // Normalize distance by image diagonal for scale invariance
-    const imageDiagonal = Math.hypot(image.width, image.height);
-    const normalizedMinDist = minDist / imageDiagonal;
-
-    const THRESHOLD_DISTANCE = 0.15;
-    const confidenceDecimal = Math.max(0, 1 - normalizedMinDist / THRESHOLD_DISTANCE);
-    const ACCEPTANCE_THRESHOLD = 0.1;
+    const THRESHOLD_DISTANCE = 1150;
+    const confidenceDecimal = Math.max(0, 1 - dist(kp.rightWrist, kp.nose) / THRESHOLD_DISTANCE);
+    const ACCEPTANCE_THRESHOLD = 0.1; 
 
     const result = {
       closestHand,
-      distance: parseFloat(normalizedMinDist.toFixed(4)),
+      distance: parseFloat(minDist.toFixed(2)),
       accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
 
