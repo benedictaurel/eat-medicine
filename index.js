@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
-import * as tf from "@tensorflow/tfjs-node";
-import posenet from "@tensorflow-models/posenet";
+import * as tf from "@tensorflow/tfjs";
+import * as posenet from "@tensorflow-models/posenet";
 import { createCanvas, loadImage } from "canvas";
 import fs from "fs";
 import path from "path";
@@ -30,24 +30,21 @@ async function initModel() {
       multiplier: 0.75,
     });
     console.log("✅ PoseNet model loaded!");
-
-    // Warm up the model once
-    const warmupInput = tf.zeros([1, 200, 257, 3]);
-    await net.estimateSinglePose(warmupInput);
-    warmupInput.dispose();
   }
   return net;
 }
 
+// Root endpoint
 app.get("/", (req, res) => {
   res.json({
-    message:
-      "PoseNet API using TensorFlow.js Node — detects closest hand to the nose.",
+    message: "This is an API for PoseNet pose estimation that identifies the closest hand to the nose in an image to help patients that suffer from tuberculosis."
   });
 });
 
+// Main endpoint
 app.post("/pose", upload.single("image"), async (req, res) => {
   try {
+    // Initialize model if not loaded
     await initModel();
 
     if (!req.file) {
@@ -64,6 +61,7 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       flipHorizontal: false,
     });
 
+    // Get keypoints
     const kp = {};
     for (let point of pose.keypoints) {
       if (point.score < 0.5) continue;
@@ -72,40 +70,40 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       }
     }
 
-    console.log("Detected keypoints:", kp);
+    console.log("Koordinat: ", kp);
 
     if (!kp.nose) {
       return res.status(400).json({ error: "Nose not detected", accepted: false });
     }
 
     if (!kp.rightWrist && !kp.leftWrist) {
-      return res.status(400).json({ error: "No wrist detected", accepted: false });
+      return res.status(400).json({ error: "Wrist(s) not detected", accepted: false });
     }
 
-    const nearestHand = kp.rightWrist || kp.leftWrist;
-    const d = dist(nearestHand, kp.nose);
-
     const THRESHOLD_DISTANCE = 1500;
-    const confidence = Math.max(0, 1 - d / THRESHOLD_DISTANCE);
-    const ACCEPTANCE_THRESHOLD = 0.1;
+    const confidenceDecimal = Math.max(0, 1 - dist(kp?.rightWrist || kp?.leftWrist, kp.nose) / THRESHOLD_DISTANCE);
+    const ACCEPTANCE_THRESHOLD = 0.1; 
 
     const result = {
-      distance: parseFloat(d.toFixed(2)),
-      accepted: confidence >= ACCEPTANCE_THRESHOLD,
-      confidence: parseFloat(confidence.toFixed(3)),
+      distance: parseFloat(dist(kp?.rightWrist || kp?.leftWrist, kp.nose).toFixed(2)),
+      accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
     };
 
+    // Clean up uploaded image
     fs.unlinkSync(req.file.path);
+
     return res.json(result);
   } catch (error) {
     console.error("Pose estimation error:", error);
 
+    // Clean up uploaded file if it exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
+
     res.status(500).json({ error: "Pose estimation failed", details: error.message });
   }
 });
 
-// Export for serverless deployments
+// Export app for Vercel serverless environment
 export default app;
