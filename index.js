@@ -12,13 +12,6 @@ const upload = multer({ dest: path.join(os.tmpdir(), "uploads") });
 
 let net;
 
-// Helper to calculate Euclidean distance
-function dist(a, b) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
 // Initialize PoseNet model
 async function initModel() {
   if (!net) {
@@ -70,8 +63,6 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       }
     }
 
-    console.log("Koordinat: ", kp);
-
     if (!kp.nose) {
       return res.status(400).json({ error: "Nose not detected", accepted: false });
     }
@@ -80,13 +71,8 @@ app.post("/pose", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Wrist(s) not detected", accepted: false });
     }
 
-    const THRESHOLD_DISTANCE = 1500;
-    const confidenceDecimal = Math.max(0, 1 - dist(kp?.rightWrist || kp?.leftWrist, kp.nose) / THRESHOLD_DISTANCE);
-    const ACCEPTANCE_THRESHOLD = 0.1; 
-
     const result = {
-      distance: parseFloat(dist(kp?.rightWrist || kp?.leftWrist, kp.nose).toFixed(2)),
-      accepted: confidenceDecimal >= ACCEPTANCE_THRESHOLD,
+      accepted: true,
     };
 
     // Clean up uploaded image
@@ -105,5 +91,4 @@ app.post("/pose", upload.single("image"), async (req, res) => {
   }
 });
 
-// Export app for Vercel serverless environment
 export default app;
