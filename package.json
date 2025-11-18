@@ -14,7 +14,7 @@
   "description": "",
   "dependencies": {
     "@tensorflow-models/posenet": "^2.2.2",
-    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "canvas": "^3.2.0",
     "express": "^5.1.0",
     "multer": "^2.0.2"
